@@ -45,6 +45,8 @@ and the unconfigured paid-research integration described below.
   Tinfoil review before deployment. A secret name alone does not prove isolation.
 - CI checks configuration. Releases are manual and never deploy a container or
   promote another repository's release.
+- The dashboard starts `tinfoil-release.yml` with a version. That workflow
+  creates the tag and starts `tinfoil-release-publish.yml` to attest and publish.
 
 ## Check locally
 

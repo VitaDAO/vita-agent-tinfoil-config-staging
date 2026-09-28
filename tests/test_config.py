@@ -107,7 +107,7 @@ class StagingConfigTests(unittest.TestCase):
             validate(self.config)
 
     def test_release_is_manual_and_repository_scoped(self):
-        workflow = load_config((ROOT / ".github/workflows/release.yml").read_text())
+        workflow = load_config((ROOT / ".github/workflows/tinfoil-release-publish.yml").read_text())
         self.assertEqual(set(workflow["on"]), {"workflow_dispatch"})
         job = workflow["jobs"]["attest"]
         self.assertEqual(job["if"], "github.repository == 'VitaDAO/vita-agent-tinfoil-config-staging' && github.ref_type == 'tag'")

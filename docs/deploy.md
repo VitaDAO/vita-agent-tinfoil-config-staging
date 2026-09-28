@@ -56,15 +56,39 @@ attested production enclave.
 
 1. Run the local checks from the README and confirm that GitHub CI passes.
 2. Review the pinned image digest and its source revision.
-3. Create a lightweight `vMAJOR.MINOR.PATCH` tag in this repository only.
-4. Manually run `Attest staging configuration manually` against that tag.
-5. Inspect the generated attestation and prerelease. Publishing does not deploy
-   the container, and this workflow never marks a release as latest.
+3. From the Tinfoil dashboard's release flow, choose a new `vMAJOR.MINOR.PATCH`
+   version. The dashboard discovers `.github/workflows/tinfoil-release.yml`.
+   The equivalent CLI command for the next release is:
+
+   ```sh
+   gh workflow run tinfoil-release.yml \
+     --repo VitaDAO/vita-agent-tinfoil-config-staging \
+     --ref main -f version=v0.1.1
+   ```
+
+4. Wait for both workflows. `tinfoil-release.yml` validates the configuration,
+   creates the tag, and dispatches `tinfoil-release-publish.yml` on that tag.
+   The publish workflow measures, attests, and creates the prerelease.
+5. Inspect the generated attestation, `tinfoil-deployment.json`, and
+   `tinfoil.hash`. Publishing does not deploy the container. Neither workflow
+   marks a release as latest.
+
+The two workflow names and the required `version` input follow the
+[official Tinfoil template](https://github.com/tinfoilsh/tinfoil-containers-template/tree/0eddc320b8f328d7a3c057152596934444ac2d75/.github/workflows).
+This repository adds configuration checks, staging-repository guards, and
+prerelease handling. There are no tag-push triggers or Tinfoil admin keys.
+
+Existing tags are never moved or overwritten. If preparation created a tag but
+publishing failed, inspect that tag's commit and the failure before retrying the
+publish workflow on the same tag. Do not rerun preparation with an existing
+version. A release run has two stages, so a successful prepare job alone does
+not prove that the release was published.
 
 The measurement action is pinned to the version used by the existing production
-configuration workflow. No attestation run has been verified for this new repo
-yet. Treat action success, Tinfoil acceptance, and browser verification as
-separate checks.
+configuration workflow. The original manual workflow published `v0.1.0`, but
+its filename was not discoverable by Tinfoil's dashboard. Keep that historical
+release unchanged. Treat action success, Tinfoil acceptance, and browser
+verification as separate checks.
 
 ## Deploy and verify separately
 

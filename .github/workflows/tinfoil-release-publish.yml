@@ -1,4 +1,7 @@
-name: Attest staging configuration manually
+# Dispatched on the new tag by tinfoil-release.yml. Never deploys a container.
+name: Tinfoil Release - Publish (auto-triggered)
+
+run-name: Publish release ${{ github.ref_name }}
 
 "on":
   workflow_dispatch:
