@@ -1,0 +1,23 @@
+name: Check staging configuration
+
+"on":
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+        with:
+          persist-credentials: false
+      - run: |
+          python3 -m venv .venv
+          .venv/bin/python -m pip install -r requirements-checks.txt
+      - run: .venv/bin/python scripts/validate_config.py
+      - run: .venv/bin/python -m unittest discover -s tests -v

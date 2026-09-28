@@ -1,0 +1,50 @@
+name: Attest staging configuration manually
+
+"on":
+  workflow_dispatch:
+
+# No push trigger, Tinfoil admin key, container update, or deployment step.
+permissions:
+  contents: read
+
+concurrency:
+  group: staging-attestation-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  attest:
+    if: github.repository == 'VitaDAO/vita-agent-tinfoil-config-staging' && github.ref_type == 'tag'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write
+      packages: write
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+        with:
+          persist-credentials: false
+      - name: Check release tag
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          [[ "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          test "$(git cat-file -t "$GITHUB_REF")" = commit
+      - run: |
+          python3 -m venv .venv
+          .venv/bin/python -m pip install -r requirements-checks.txt
+      - run: .venv/bin/python scripts/validate_config.py
+      - run: .venv/bin/python -m unittest discover -s tests -v
+      - name: Measure and attest this repository only
+        uses: tinfoilsh/measure-image-action@02f24fd03e2e79abc9a2044b1c8f380ae5bec9e3
+        with:
+          config-file: ${{ github.workspace }}/tinfoil-config.yml
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          mark-as-latest: "false"
+      - name: Keep the release a prerelease
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: gh release edit "$RELEASE_TAG" --repo "$GH_REPO" --prerelease --latest=false

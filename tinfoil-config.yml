@@ -1,0 +1,130 @@
+# Staging debug configuration only. Secret values never belong in this file.
+# Base: VitaDAO/vita-agent-tinfoil-config@7559c38cc92f2d7dbfdb717c3c31f2f7f355f6f4
+# Model infrastructure is shared; review docs/deploy.md before any deployment.
+# STRICT_PROD=0 matches the existing debug-staging baseline, not production.
+# JWT verification and sealed data transport remain explicitly enabled.
+cvm-version: 0.7.5
+cpus: 4
+memory: 16384
+
+containers:
+  - name: vita-agent
+    image: "ghcr.io/vitadao/vita-agent:staging-36833999830a8e42b0a58c54fdbe027cfcab7720@sha256:d0d6a7e7788207c612edf9682699321d7333387b44749c214ae60223f1934f63"
+    registry:
+      username: DobrinAlexandru
+      password_secret: VITA_AGENT_GHCR_TOKEN
+    env:
+      - VITA_AGENT_PORT: "8787"
+      - STORAGE_BACKEND: "supabase"
+      - SUPABASE_URL: "https://onqhfjiymokeljclyqdu.supabase.co"
+      - VITA_AGENT_CORS_ORIGINS: "https://staging-app.vitadao.com"
+      - VITA_AGENT_ENABLE_NEED_FILL: "1"
+      - STRICT_PROD: "0"
+      - AAD_REQUIRED: "0"
+      - VITA_ROUTING_MODE: "direct"
+      - VITA_AGENT_STREAMING: "0"
+      - VITA_AGENT_DEPLOYMENT_ID: "staging-vita-agent-3683399"
+      - VITA_AGENT_POLICY_VERSION: "vita-agent-policy/2026-07-12"
+      - VITA_CONTEXT_V2_COHORT_POLICY_VERSION: "context-v2-rollout/1"
+      - VITA_TURN_ENVELOPE_V2: "1"
+      - VITA_CONTEXT_OWNER_BACKEND: "1"
+      - VITA_SESSION_V2: "1"
+      - VITA_HEALTH_RESOLVER_V2: "1"
+      - VITA_CONTEXT_V2_CANARY_PERCENT: "100"
+      - VITA_TURN_V1_POLICY: "disabled"
+      - VITA_AGENT_ENABLE_LEGACY_ROUTES: "0"
+      - VITA_ACTIVE_HEALTH_FOCUS_V1: "1"
+      - VITA_HEALTH_PROJECTION_V1: "1"
+      - VITA_GRANT_CATALOG_V1: "1"
+      - VITA_APP_ACTION_PROPOSALS_V1: "1"
+      - VITA_APP_ACTION_ENABLED_V1: "app.account.open_deletion,app.account_profile.update,app.account_profile.update_avatar,app.activity.delete_manual,app.activity.log_manual,app.activity.update_manual,app.biomarker.add_manual,app.biomarker.delete,app.biomarker.update,app.consent.open_settings,app.consent.set,app.health_calendar.add_event,app.health_calendar.apply_plan,app.health_calendar.attach_report,app.health_calendar.complete_event,app.health_calendar.create_group,app.health_calendar.delete_event,app.health_calendar.detach_report,app.health_calendar.edit_history,app.health_calendar.generate_plan,app.health_calendar.log_result,app.health_calendar.refine_plan,app.health_calendar.remove_group,app.health_calendar.rename_group,app.health_calendar.undo_plan,app.health_calendar.update_event,app.health_profile.update,app.lab_report.import,app.preferences.set_date_format,app.preferences.set_time_format,app.preferences.set_units,app.security.open_trusted_devices,app.staking.open_approve,app.staking.open_auto_renew,app.staking.open_stake,app.staking.open_withdraw,app.subscription.open_checkout,app.subscription.open_portal,app.vault.delete_report,app.vault.download_report,app.vault.export_data,app.wallet.open_link,app.wallet.open_unlink,app.wearable.connect,app.wearable.disconnect,app.wearable.open_sync_settings"
+      - VITA_AGENT_MANAGER_CHECKPOINTS: "1"
+      - VITA_SERVER_HEALTH_PACK_V1: "1"
+      - VITA_APP_ACTION_TARGET_ACQUISITION_V1: "1"
+      - VITA_APP_ACTION_TARGET_ACQUISITION_V2: "1"
+      - VITA_APP_ACTION_TARGET_ACQUISITION_DB_READY: "1"
+      - VITA_FULL_HEALTH_SESSION_V1: "1"
+      - VITA_AGENT_PINNED_SAFETY: "1"
+      - VITA_AGENT_EXACT_MATCH: "1"
+      - VITA_AGENT_INPUT_FILTER: "1"
+      - OPENAI_AGENTS_DISABLE_TRACING: "1"
+      - VITA_AGENT_ENCLAVE_URL: "https://staging-vita-agent.debug.vitality-now.containers.tinfoil.dev/"
+      - VITA_AGENT_REQUIRE_SEALED_DEK: "1"
+      - VITA_AGENT_ACCEPT_LEGACY_DEK_HEADERS: "0"
+      - VITA_AGENT_JSON_LOGS: "1"
+      - VITA_AGENT_PROVIDER_HEALTH_DIAGNOSTICS: "1"
+      - SENTRY_ENVIRONMENT: "staging"
+      - SENTRY_RELEASE: "vita-agent@3683399"
+      - VITA_AGENT_VERSION: "vita-agent@3683399"
+      - SENTRY_TRACES_SAMPLE_RATE: "0.1"
+      - SENTRY_PROFILES_SAMPLE_RATE: "0"
+      - SUPABASE_JWT_VERIFY_MODE: "jwks"
+      - SUPABASE_JWKS_URL: "https://onqhfjiymokeljclyqdu.supabase.co/auth/v1/.well-known/jwks.json"
+      - VITA_AGENT_RATE_LIMIT_RPM: "60"
+      - VITA_AGENT_MAX_REQUEST_BYTES: "2097152"
+      - VITA_AGENT_EMBED_MODEL: "BAAI/bge-base-en-v1.5"
+      - VITA_AGENT_PERSONA_REFRESH_EVERY: "10"
+      - VITA_AGENT_AUTO_EXTRACT: "1"
+      - VITA_AGENT_JOB_AUTORUN: "1"
+      - VITA_AGENT_JOB_V2: "1"
+      - AUBRAI_MODE: "x402"
+      - AUBRAI_DEBUG: "0"
+      - AUBRAI_FAST: "1"
+      - VITA_AUBRAI_GATEWAY_V2: "0"
+      - VITA_AUBRAI_DURABLE_BUDGET: "0"
+      - VITA_AUBRAI_ENCRYPTED_RESPONSE_REQUIRED: "0"
+      - VITA_AGENT_MODEL_PROVIDER: "tinfoil"
+      - VITA_AGENT_NATIVE_HARNESS: "1"
+      - VITA_AGENT_OPEN_JEV_SELECTION: "1"
+      - VITA_AGENT_TINFOIL_TRANSPORT: "sdk"
+      - VITA_AGENT_MODEL: "fable-distill"
+      - VITA_AGENT_TINFOIL_ENCLAVE: "vita-agent-model.vitality-now.containers.tinfoil.dev"
+      - VITA_AGENT_TINFOIL_REPO: "VitaDAO/vita-agent-model-tinfoil-config"
+      - VITA_AGENT_MANAGER_TEMPERATURE: "1.0"
+      - VITA_AGENT_MANAGER_TOP_P: "0.95"
+      - VITA_AGENT_MANAGER_TOP_K: "20"
+      - VITA_AGENT_MODEL_HEALTH_URL: "https://vita-agent-model.vitality-now.containers.tinfoil.dev/health"
+      - VITA_AGENT_MODEL_TIMEOUT_S: "120"
+      - VITA_AGENT_MODEL_MAX_RETRIES: "1"
+      - VITA_AGENT_CHAT_TEMPERATURE: "0"
+      - VITA_AGENT_MODEL_INPUT_BUDGET: "48000"
+      - VITA_AGENT_MODEL_INPUT_HARD_CEILING: "131072"
+      - VITA_AGENT_HISTORY_TOKEN_BUDGET: "22000"
+      - VITA_CONVERSATION_HISTORY_V1: "1"
+      - VITA_AGENT_CHAT_THINKING: "auto"
+      - VITA_AGENT_CHAT_MAX_TOKENS: "8000"
+      - VITA_AGENT_CHAT_MAX_TOKENS_LIGHT: "6000"
+      - VITA_AGENT_GRADED_EFFORT: "1"
+      - VITA_AGENT_RESPONSE_SHAPE: "1"
+      - VITA_AGENT_MAX_TOOL_CALLS: "10"
+      - VITA_AGENT_PARALLEL_TOOLS: "1"
+      - VITA_AGENT_HISTORY_TOKEN_BUDGET_STRATEGY: "adaptive"
+      - VITA_AGENT_HISTORY_TOKEN_BUDGET_NORMAL: "22000"
+      - VITA_AGENT_HISTORY_TOKEN_BUDGET_FAST: "8000"
+      - VITA_AGENT_HISTORY_TOKEN_BUDGET_COMPLEX: "32768"
+      - VITA_AGENT_HISTORY_TOKEN_BUDGET_DEEP: "65536"
+      - VITA_AGENT_HISTORY_TOKEN_BUDGET_FULL: "131072"
+      - VITA_AUBRAI_ATTESTATION_REQUIRED: "0"
+    secrets:
+      - VITA_AGENT_GHCR_TOKEN
+      - TINFOIL_API_KEY
+      - OPEN_JEV_API_KEY
+      - SENTRY_DSN
+      - STAGING_SUPABASE_ANON_KEY
+      - STAGING_SUPABASE_INTERNAL_AUTH_EMAIL
+      - STAGING_SUPABASE_INTERNAL_AUTH_PASSWORD
+      - VITA_PROTOCOL_TICKET_HMAC_KEY
+
+shim:
+  upstream-port: 8787
+  paths:
+    - /api/health
+    - /metrics
+    - /.well-known/enclave-pubkey
+    - /.well-known/vita-agent-capabilities
+    - /.well-known/vita-agent-turn-features
+    - /api/v1/turn-protocol-ticket
+    - /api/v1/capsule
+    - /api/v1/capsule/stream
+    - /api/v1/jobs
+    - /api/v1/jobs/*
