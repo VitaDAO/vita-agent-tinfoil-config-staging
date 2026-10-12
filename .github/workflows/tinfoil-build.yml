@@ -1,0 +1,29 @@
+name: Build & Attest Tinfoil Image
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+      - 'staging-v*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+      id-token: write
+      attestations: write
+
+    steps:
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+
+      - uses: tinfoilsh/measure-image-action@c33809b2a4a9ced570ab869765aecd44b4d3cbd5  # v0.11.0, same pin as open-jev-candidate (serves v3 attestation on cvm 0.14.7)
+        with:
+          config-file: ${{ github.workspace }}/tinfoil-config.yml
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          # prerelease so a new tag does NOT auto-flip /releases/latest (which would
+          # cause attestation drift vs the still-old enclave). Flip --latest only
+          # AFTER the matching enclave is deployed + atc serves the new bundle.
+          # Safe because v0.13.3 remains a non-prerelease release, so atc's
+          # /releases/latest still resolves (the repo is NOT prerelease-only).

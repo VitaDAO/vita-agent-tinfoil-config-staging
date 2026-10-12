@@ -1,62 +1,121 @@
-# Vita Agent staging configuration
+# vita-agent-tinfoil-config
 
-Public Tinfoil configuration for `staging-vita-agent`. Application source stays
-in [VitaDAO/vita-agent](https://github.com/VitaDAO/vita-agent). This repository
-does not build or fork the application.
+Public deployment manifest for the **vita-agent** confidential AI server.
 
-**Status: configuration prepared, not deployed.** No Tinfoil secrets are stored
-here. Creating this repository does not change a running container.
+## What this repo is
 
-## Environment
+This repo contains everything needed for independent verification:
 
-| Setting | Target |
-| --- | --- |
-| Supabase project | `onqhfjiymokeljclyqdu` |
-| Frontend | `https://staging-app.vitadao.com` |
-| Agent | `https://staging-vita-agent.debug.vitality-now.containers.tinfoil.dev` |
-| Telemetry environment | `staging` |
-| Application source revision | `36833999830a8e42b0a58c54fdbe027cfcab7720` |
+| File | Purpose |
+|---|---|
+| `tinfoil-config.yml` | Full deployment manifest: image digest, resource limits, secret names, exposed HTTP paths |
+| `.github/workflows/tinfoil-build.yml` | Sigstore attestation workflow that runs on every release tag |
 
-The image reference matches the production configuration at
-[`3cffa435`](https://github.com/VitaDAO/vita-agent-tinfoil-config/tree/3cffa435ccad1831a169d2b838cfb5afc1478b87).
-This is a configuration comparison, not proof of the image currently running
-on production.
+Source code lives in [`VitaDAO/vita-agent`](https://github.com/VitaDAO/vita-agent).
+Container images are pulled from `ghcr.io/vitadao/vita-agent` and authenticated with `VITA_AGENT_GHCR_TOKEN`.
 
-The manifest was derived from the existing
-[`staging` configuration at `7559c38c`](https://github.com/VitaDAO/vita-agent-tinfoil-config/tree/7559c38cc92f2d7dbfdb717c3c31f2f7f355f6f4).
-Application feature settings match the production manifest. Differences are
-limited to the debug environment, staging URLs and identity, credentials,
-and the unconfigured paid-research integration described below.
+## What vita-agent does
 
-## Isolation and limits
+vita-agent is a single Tinfoil enclave that handles the AI portion of the
+Vita longevity app. Specifically:
 
-- Supabase URL and JWKS point only to staging. Shared, unprefixed Supabase
-  credential bindings are not allowed.
-- `STRICT_PROD=0` matches the existing debug-staging configuration. It skips
-  production-only boot checks, including rejection of a `.debug.` URL. JWKS
-  verification, sealed DEKs, disabled legacy routes, and disabled tracing remain
-  explicit. This manifest must never serve production or real health data.
-- No wallet private key or Aubrai research-key binding is requested. Paid
-  research is not configured in this initial manifest. Do not claim research
-  parity until a staging-only credential setup is approved and verified.
-- The model endpoint is still shared infrastructure. This repository does not
-  establish isolated model capacity, billing, or downstream services.
-- Protocol-ticket signing and other non-Supabase secret scopes require a live
-  Tinfoil review before deployment. A secret name alone does not prove isolation.
-- CI checks configuration. Releases are manual and never deploy a container or
-  promote another repository's release.
-- The dashboard starts `tinfoil-release.yml` with a version. That workflow
-  creates the tag and starts `tinfoil-release-publish.yml` to attest and publish.
+- 6 LLM intents (chat, daily_insight, refine_protocol, generate_protocol,
+  parse_supplement, suggest_condition) via the OpenAI Agents SDK against
+  Tinfoil Inference
+- Long-term encrypted memory (Active Memory pipeline + tools the LLM can call)
+- Aubrai scientist routing (HPKE-sealed + x402 USDC-on-Base micropayment)
+- Persona doc + auto fact extraction + thumbs-up/down feedback loop
+- Per-request RLS into Supabase by forwarding the user's Supabase JWT — no service-role key or Supabase private signing key in the enclave for the v1 production path
 
-## Check locally
+It does NOT handle wearables or raw lab PDF/image parsing — those run in the
+separate `vita-ingest` enclave. That split is intentional: vita-agent's privacy
+claim depends on keeping ingestion and private-AI orchestration separate.
 
-```sh
-python3 -m venv .venv
-.venv/bin/python -m pip install -r requirements-checks.txt
-.venv/bin/python scripts/validate_config.py
-.venv/bin/python -m unittest discover -s tests -v
+## Privacy model
+
+- All LLM inference is HPKE-encrypted to Tinfoil hardware enclaves (AMD SEV-SNP)
+- All Supabase rows are AEAD-encrypted with per-user keys (XChaCha20-Poly1305)
+  — Supabase admins see only ciphertext
+- Browser-side DEKs are HPKE-sealed to the enclave's static pubkey before
+  transport (`X-Vita-User-DEK-Sealed` header), then opened in-enclave only
+- Cross-user output guardrail blocks any response containing another user's
+  identifiers (UUID, email, bytea, base64 secret)
+- Provider-policy guardrail rejects any model client that isn't Tinfoil
+  Inference at runtime; CI grep blocks `AsyncOpenAI(...)` outside the
+  approved provider module
+- Only routes listed under `shim.paths` are exposed; everything else is
+  blocked at the reverse proxy
+
+## Verify the running enclave
+
+```bash
+cosign verify-attestation \
+  --type 'https://slsa.dev/provenance/v1' \
+  --certificate-identity-regexp 'https://github\.com/VitaDAO/vita-agent-tinfoil-config/' \
+  --certificate-oidc-issuer 'https://token.actions.githubusercontent.com' \
+  ghcr.io/vitadao/vita-agent@sha256:<digest>
 ```
 
-See [deployment prerequisites](docs/deploy.md) before creating a release or
-changing the staging container. Production configuration and secrets must stay
-untouched.
+The digest is pinned in `tinfoil-config.yml`. Every release tag creates a
+GitHub pre-release with the sigstore attestation bundle.
+
+## Manager model pins (branch policy)
+
+| Branch / container | `VITA_AGENT_MODEL` | Enclave / repo pins | Chat knobs |
+|---|---|---|---|
+| `staging` → `staging-vita-agent` | `gemma4-31b` | **unset** — native Tinfoil Inference SDK discovery (matches local `scripts/rig_env.py`) | `VITA_AGENT_CHAT_THINKING=0` (no qwen `top_k`/`min_p`) |
+| `main` → `vita-agent-prod` | `qwen-opus` | `vita-model-prod` + `VitaDAO/vita-agent-model-test-tinfoil-config` | qwen thinking/sampling (`auto` + top_k/min_p) |
+
+Staging is the Gemma soak; prod stays on qwen until the owner explicitly approves promote. Do not copy the staging model block onto `main` without that approval.
+
+## Deploy a new version
+
+```bash
+# 1. In the source repo (VitaDAO/vita-agent), wait for CI to publish a new
+#    image to GHCR. Copy the sha256 digest.
+# 2. Edit tinfoil-config.yml: paste the new digest into containers[0].image.
+# 3. Tag this repo, then deploy that tag as a non-debug Tinfoil container:
+git tag v0.10.0
+git push origin main v0.10.0
+```
+
+The workflow attests the image, creates a pre-release with the bundle,
+and the Tinfoil container can be launched from the signed tag.
+
+When relaunching with RedPill, pass the secret explicitly — listing
+`REDPILL_API_KEY` under `secrets:` is not always enough:
+
+```bash
+tinfoil container relaunch <container-id> --tag v0.10.x --secret REDPILL_API_KEY
+```
+
+## Required secrets (set in the Tinfoil dashboard)
+
+| Secret | Used by | Notes |
+|---|---|---|
+| `VITA_AGENT_GHCR_TOKEN` | image pull | Read-only PAT for `ghcr.io/vitadao/vita-agent` |
+| `TINFOIL_API_KEY` | every LLM call | Tinfoil Inference auth |
+| `SUPABASE_URL` | per-request RLS client | Same URL the browser uses |
+| `SUPABASE_ANON_KEY` | per-request RLS client | RLS-scoped, anonymous role |
+| `AUBRAI_HPKE_PUBLIC_KEY` | aubrai_scientist tool | 32-byte hex pubkey |
+| `X402_WALLET_PRIVATE_KEY` | aubrai_scientist tool | Funded Base mainnet wallet |
+| `SENTRY_DSN` | PHI-safe error monitoring | Optional; enables scrubbed Sentry events |
+| `REDPILL_API_KEY` | RedPill LLM provider | Required when `VITA_AGENT_MODEL_PROVIDER=redpill` |
+
+`X402_WALLET_PRIVATE_KEY` is the highest-value secret — never log, never
+store outside the dashboard's encrypted slot.
+
+Sentry is optional and disabled when `SENTRY_DSN` is unset. The runtime scrubber
+removes request bodies, headers, cookies, user identifiers, DEKs, prompts,
+health/lab/research payloads, and stack locals before sending events.
+
+`SUPABASE_SERVICE_ROLE_KEY` MUST NOT be added. `boot.py::_validate_storage_config`
+rejects any non-empty value at startup unless the debug-only escape hatch is set;
+`STRICT_PROD=1` rejects that escape hatch as well.
+
+## Coexistence with `aubrai-tinfoil-config`
+
+vita-agent runs alongside (not inside) the Aubrai enclave. Aubrai is a
+separate confidential service this enclave CALLS via x402 + HPKE for
+deep-research questions. They have different attestation chains, different
+sigstore identities, and different secret slots.
