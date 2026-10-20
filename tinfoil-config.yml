@@ -18,7 +18,7 @@ containers:
     # cvm 0.14 defaults to a read-only rootfs; the agent writes DATA_DIR (/home/vita/.vita-agent) at import time.
     # Keeps the 0.7.5 behaviour; a tmpfs on the data dir could harden this later.
     read_only: false
-    image: "ghcr.io/vitadao/vita-agent:staging-6f7e9243c4b0cf144c59406dc7ea5c9b6c86af98@sha256:0daa1b76f917c3abb49ee1dd41322c8a66ca9ec7f910b72381837b0883c998ed"
+    image: "ghcr.io/vitadao/vita-agent:ci-4355c939284f845e148186940295191f610009e7-39422132703-1@sha256:89f827216581b6f6a6767ea4d386638c3466cc7c1335d23aff79d8f917a9b38c"
     env:
       - VITA_AGENT_PORT: "8787"
       - STORAGE_BACKEND: "supabase"
@@ -44,7 +44,7 @@ containers:
       # /.well-known/vita-agent-capabilities endpoint 503s → the V2 client cannot
       # negotiate a turn → every chat fails with chat_agent_error. The 4 context-v2
       # flags are all-or-nothing (partial set → partial_context_v2_bundle).
-      - VITA_AGENT_DEPLOYMENT_ID: "staging-vita-agent-6f7e924"
+      - VITA_AGENT_DEPLOYMENT_ID: "staging-vita-agent-4355c93"
       - VITA_AGENT_POLICY_VERSION: "vita-agent-policy/2026-07-12"
       - VITA_CONTEXT_V2_COHORT_POLICY_VERSION: "context-v2-rollout/1"
       - VITA_TURN_ENVELOPE_V2: "1"
@@ -106,8 +106,8 @@ containers:
       # 2026-07-26). contracts.py:391 still enforces closed-set provenance and
       # the registry's unit/type/range rules on every synthetic fact.
       - VITA_STAGING_SYNTHETIC_FIXTURES: "1"
-      - SENTRY_RELEASE: "vita-agent@6f7e924"
-      - VITA_AGENT_VERSION: "vita-agent@6f7e924"
+      - SENTRY_RELEASE: "vita-agent@4355c93"
+      - VITA_AGENT_VERSION: "vita-agent@4355c93"
       - SENTRY_TRACES_SAMPLE_RATE: "0.1"
       - SENTRY_PROFILES_SAMPLE_RATE: "0"
       - SUPABASE_JWT_VERIFY_MODE: "jwks"
@@ -137,8 +137,8 @@ containers:
       - VITA_AUBRAI_GATEWAY_V2: "0"
       - VITA_AUBRAI_DURABLE_BUDGET: "0"
       - VITA_AUBRAI_ENCRYPTED_RESPONSE_REQUIRED: "0"
-      # Task 203: Fable medium in the native harness, with attested Open-JEV
-      # first-read selection. Manager sampling matches the local candidate.
+      # Staging voice verification: use hosted DeepSeek while the separate
+      # Fable model container is stopped. Preserve attested Open-JEV selection.
       # The runtime rejects the retired provider-fallback setting at boot.
       - VITA_AGENT_MODEL_PROVIDER: "tinfoil"
       - VITA_AGENT_NATIVE_HARNESS: "1"
@@ -148,16 +148,14 @@ containers:
       # selector and adapter identity hashes stay pinned and fail closed.
       - VITA_AGENT_OPEN_JEV_RELEASE_TARGET: "{\"host\":\"open-jev-candidate.vitality-now.containers.tinfoil.dev\",\"repo\":\"VitaDAO/open-jev-candidate-tinfoil-config\",\"credential_env\":\"TINFOIL_API_KEY\",\"release_digest\":\"latest\",\"selector_sha256\":\"87916b404e3e344620f8879319f081ad16e823ebfc0e41dacc3212e26b0938e7\",\"adapter_sha256\":\"79057d0e2673aa2813a8ea64193d74182a33392b1221c7c06d4afc7afe18dc36\"}"
       - VITA_AGENT_TINFOIL_TRANSPORT: "sdk"
-      - VITA_AGENT_MODEL: "fable-distill"
-      - VITA_AGENT_TINFOIL_ENCLAVE: "vita-agent-model.vitality-now.containers.tinfoil.dev"
-      - VITA_AGENT_TINFOIL_REPO: "VitaDAO/vita-agent-model-tinfoil-config"
+      - VITA_AGENT_MODEL: "deepseek-v4-1-flash"
+      - VITA_AUDIO_PROVIDER: "privatemode"
       # 0.7 (was the DeepSeek reference 1.0): blind A/B 2026-10-07, 3x26 answers
       # per arm: whole-answer language drift 1/78 -> 0/78, accepted finals 74 -> 78,
       # quality tied on every graded slice (vita-agent push-cut.md).
       - VITA_AGENT_MANAGER_TEMPERATURE: "0.7"
       - VITA_AGENT_MANAGER_TOP_P: "0.95"
       - VITA_AGENT_MANAGER_TOP_K: "20"
-      - VITA_AGENT_MODEL_HEALTH_URL: "https://vita-agent-model.vitality-now.containers.tinfoil.dev/health"
       # Restores headroom the model call used to have. Before 2026-08-05 there
       # was no explicit timeout, so the OpenAI SDK defaults applied: 600s and
       # 2 retries. DEFAULT_MODEL_REQUEST_TIMEOUT_S=60 / retries=0 arrived in a
@@ -249,6 +247,7 @@ containers:
       - OPEN_JEV_CANDIDATE_API_KEY
       - VITA_AGENT_GHCR_TOKEN
       - TINFOIL_API_KEY
+      - PRIVATEMODE_API_KEY
       - OPEN_JEV_API_KEY
       - REDPILL_API_KEY
       - SENTRY_DSN
@@ -277,6 +276,7 @@ shim:
     - /.well-known/vita-agent-capabilities
     - /.well-known/vita-agent-turn-features
     - /api/v1/turn-protocol-ticket
+    - /api/v1/audio/transcriptions
     - /api/v1/capsule
     - /api/v1/capsule/stream
     - /api/v1/jobs
