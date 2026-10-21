@@ -18,7 +18,7 @@ containers:
     # cvm 0.14 defaults to a read-only rootfs; the agent writes DATA_DIR (/home/vita/.vita-agent) at import time.
     # Keeps the 0.7.5 behaviour; a tmpfs on the data dir could harden this later.
     read_only: false
-    image: "ghcr.io/vitadao/vita-agent:staging-b9b33821041d6489adf4372eee02d63aa1b828d6@sha256:31068a824a71e188416584ce40cea5dfa8b700e5a74912b14fef9b7b99853f47"
+    image: "ghcr.io/vitadao/vita-agent:staging-eaf8da163cc4cfa60a8f699ed9ae3dc091e54d91@sha256:25b2a82ae6874547b0cb368795c324f5ce13af3f23355a0e4158c78ab11f5d50"
     env:
       - VITA_AGENT_PORT: "8787"
       - STORAGE_BACKEND: "supabase"
@@ -34,17 +34,14 @@ containers:
       # staging — those point at prod Auth. config.py prefers the unprefixed pair
       # and falls back to the STAGING_ pair, so leaving the unprefixed names
       # unattached is what makes the staging identity take effect.
-      - VITA_AGENT_ENABLE_NEED_FILL: "1"
       - STRICT_PROD: "0"
       - AAD_REQUIRED: "0"
-      - VITA_ROUTING_MODE: "direct"
-      - VITA_AGENT_STREAMING: "0"
       # Turn-V2 capability identity + context-v2 bundle (mirror prod). Without these
       # build_capability_document() raises capability_identity_unavailable → the
       # /.well-known/vita-agent-capabilities endpoint 503s → the V2 client cannot
       # negotiate a turn → every chat fails with chat_agent_error. The 4 context-v2
       # flags are all-or-nothing (partial set → partial_context_v2_bundle).
-      - VITA_AGENT_DEPLOYMENT_ID: "staging-vita-agent-b9b3382"
+      - VITA_AGENT_DEPLOYMENT_ID: "staging-vita-agent-eaf8da1"
       - VITA_AGENT_POLICY_VERSION: "vita-agent-policy/2026-07-12"
       - VITA_CONTEXT_V2_COHORT_POLICY_VERSION: "context-v2-rollout/1"
       - VITA_TURN_ENVELOPE_V2: "1"
@@ -54,8 +51,6 @@ containers:
       # Without this the caps doc advertises turn_envelope_v2 but
       # context_v2_enabled_for_user() gates it to 0% of users (default). Prod=100.
       - VITA_CONTEXT_V2_CANARY_PERCENT: "100"
-      # Required by cea26c1+ capability document (turn_v1_policy_invalid → 503).
-      - VITA_TURN_V1_POLICY: "disabled"
       - VITA_AGENT_ENABLE_LEGACY_ROUTES: "0"
       - VITA_ACTIVE_HEALTH_FOCUS_V1: "1"
       # Orchestrator v3 Slice A: project raw health evidence for the model and
@@ -88,9 +83,7 @@ containers:
       - VITA_APP_ACTION_TARGET_ACQUISITION_V2: "1"
       - VITA_APP_ACTION_TARGET_ACQUISITION_DB_READY: "1"
       - VITA_FULL_HEALTH_SESSION_V1: "1"
-      - VITA_AGENT_PINNED_SAFETY: "1"
       - VITA_AGENT_EXACT_MATCH: "1"
-      - VITA_AGENT_INPUT_FILTER: "1"
       - OPENAI_AGENTS_DISABLE_TRACING: "1"
       - VITA_AGENT_ENCLAVE_URL: "https://staging-vita-agent.debug.vitality-now.containers.tinfoil.dev/"
       - VITA_AGENT_REQUIRE_SEALED_DEK: "1"
@@ -106,8 +99,8 @@ containers:
       # 2026-07-26). contracts.py:391 still enforces closed-set provenance and
       # the registry's unit/type/range rules on every synthetic fact.
       - VITA_STAGING_SYNTHETIC_FIXTURES: "1"
-      - SENTRY_RELEASE: "vita-agent@b9b3382"
-      - VITA_AGENT_VERSION: "vita-agent@b9b3382"
+      - SENTRY_RELEASE: "vita-agent@eaf8da1"
+      - VITA_AGENT_VERSION: "vita-agent@eaf8da1"
       - SENTRY_TRACES_SAMPLE_RATE: "0.1"
       - SENTRY_PROFILES_SAMPLE_RATE: "0"
       - SUPABASE_JWT_VERIFY_MODE: "jwks"
@@ -145,16 +138,9 @@ containers:
       # a1318c2d), so its settings are removed.
       - VITA_AGENT_MODEL_PROVIDER: "privatemode"
       - VITA_AGENT_MODEL_FALLBACK_MODEL: "off"
-      - VITA_AGENT_NATIVE_HARNESS: "1"
       - VITA_AGENT_TINFOIL_TRANSPORT: "sdk"
       - VITA_AGENT_MODEL: "glm-5.3-flash"
       - VITA_AUDIO_PROVIDER: "privatemode"
-      # 0.7 (was the DeepSeek reference 1.0): blind A/B 2026-10-07, 3x26 answers
-      # per arm: whole-answer language drift 1/78 -> 0/78, accepted finals 74 -> 78,
-      # quality tied on every graded slice (vita-agent push-cut.md).
-      - VITA_AGENT_MANAGER_TEMPERATURE: "0.7"
-      - VITA_AGENT_MANAGER_TOP_P: "0.95"
-      - VITA_AGENT_MANAGER_TOP_K: "20"
       # Restores headroom the model call used to have. Before 2026-08-05 there
       # was no explicit timeout, so the OpenAI SDK defaults applied: 600s and
       # 2 retries. DEFAULT_MODEL_REQUEST_TIMEOUT_S=60 / retries=0 arrived in a
@@ -173,8 +159,6 @@ containers:
       # abandoned the turn. One absorbs a single slow call without turning a
       # failure into a multi-minute wait.
       - VITA_AGENT_MODEL_MAX_RETRIES: "0"
-      # Retain the other chat setting; manager requests use the explicit
-      # VITA_AGENT_MANAGER_TEMPERATURE=0.7 above.
       - VITA_AGENT_CHAT_TEMPERATURE: "0"
       # Pinned rather than inherited, so the deployed ceiling is auditable from
       # the attestation anchor. Units are estimated tokens (UTF-8 JSON bytes/2),
@@ -228,16 +212,7 @@ containers:
       # NOTE: the LOW/LIGHT/THINK_BUDGET overrides prod carried were STALE
       # (below the code defaults that replaced them) and were removed from
       # prod rather than copied here.
-      - VITA_AGENT_GRADED_EFFORT: "1"
-      - VITA_AGENT_RESPONSE_SHAPE: "1"
-      - VITA_AGENT_MAX_TOOL_CALLS: "10"
       - VITA_AGENT_PARALLEL_TOOLS: "1"
-      - VITA_AGENT_HISTORY_TOKEN_BUDGET_STRATEGY: "adaptive"
-      - VITA_AGENT_HISTORY_TOKEN_BUDGET_NORMAL: "22000"
-      - VITA_AGENT_HISTORY_TOKEN_BUDGET_FAST: "8000"
-      - VITA_AGENT_HISTORY_TOKEN_BUDGET_COMPLEX: "32768"
-      - VITA_AGENT_HISTORY_TOKEN_BUDGET_DEEP: "65536"
-      - VITA_AGENT_HISTORY_TOKEN_BUDGET_FULL: "131072"
       - VITA_AUBRAI_ATTESTATION_REQUIRED: "0"
       # Public web search through Exa (vita-agent #297). Needs the
       # VITA_AGENT_EXA_API_KEY secret below; images without #297 ignore it.
