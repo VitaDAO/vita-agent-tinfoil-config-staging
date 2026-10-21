@@ -20,6 +20,10 @@ containers:
     read_only: false
     image: "ghcr.io/vitadao/vita-agent:staging-26a368efd2a2703ddf7d17efb50c13791d74a951@sha256:49d3c94ee461c6e67b34534cf22c5b87080b719948267bf57df46c642ae986ba"
     env:
+      # Staging-only inbound MCP. The grant key survives restarts through the
+      # dedicated secret below; the API refuses this feature outside staging.
+      - VITA_MCP_V1: "1"
+      - VITA_MCP_PUBLIC_URL: "https://staging-vita-agent.debug.vitality-now.containers.tinfoil.dev/mcp"
       - STORAGE_BACKEND: "supabase"
       - SUPABASE_URL: "https://onqhfjiymokeljclyqdu.supabase.co"
       - SUPABASE_ANON_KEY: "sb_publishable_dfOtrN4XrFiQ2j_c2qp-TA_DK6xkOc0"
@@ -169,6 +173,7 @@ containers:
       - VITA_AGENT_WEB_SEARCH: "1"
       # Literature is direct Firecrawl (FIRECRAWL_API_KEY below), the only provider.
     secrets:
+      - STAGING_VITA_MCP_GRANT_PRIVATE_KEY
       - VITA_AGENT_GHCR_TOKEN
       - TINFOIL_API_KEY
       - PRIVATEMODE_API_KEY
@@ -191,6 +196,8 @@ containers:
 shim:
   upstream-port: 8787
   paths:
+    - /mcp
+    - /api/v1/mcp/info
     - /api/health
     - /.well-known/enclave-pubkey
     - /.well-known/vita-agent-capabilities
