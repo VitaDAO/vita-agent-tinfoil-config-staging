@@ -20,7 +20,6 @@ containers:
     read_only: false
     image: "ghcr.io/vitadao/vita-agent:staging-7d92890b37fe4d2f6db40bb44ad516f4d84c4603@sha256:28c6819b7392ed367a7ec79039d39da531475dcca98cd448f7abcff6b67f756b"
     env:
-      - VITA_AGENT_PORT: "8787"
       - STORAGE_BACKEND: "supabase"
       - SUPABASE_URL: "https://onqhfjiymokeljclyqdu.supabase.co"
       - SUPABASE_ANON_KEY: "sb_publishable_dfOtrN4XrFiQ2j_c2qp-TA_DK6xkOc0"
@@ -34,8 +33,6 @@ containers:
       # staging — those point at prod Auth. config.py prefers the unprefixed pair
       # and falls back to the STAGING_ pair, so leaving the unprefixed names
       # unattached is what makes the staging identity take effect.
-      - STRICT_PROD: "0"
-      - AAD_REQUIRED: "0"
       # Turn-V2 capability identity + context-v2 bundle (mirror prod). Without these
       # build_capability_document() raises capability_identity_unavailable → the
       # /.well-known/vita-agent-capabilities endpoint 503s → the V2 client cannot
@@ -87,7 +84,6 @@ containers:
       - OPENAI_AGENTS_DISABLE_TRACING: "1"
       - VITA_AGENT_ENCLAVE_URL: "https://staging-vita-agent.debug.vitality-now.containers.tinfoil.dev/"
       - VITA_AGENT_REQUIRE_SEALED_DEK: "1"
-      - VITA_AGENT_ACCEPT_LEGACY_DEK_HEADERS: "0"
       - VITA_AGENT_JSON_LOGS: "1"
       - VITA_AGENT_PROVIDER_HEALTH_DIAGNOSTICS: "1"
       - SENTRY_ENVIRONMENT: "staging"
@@ -102,43 +98,19 @@ containers:
       - SENTRY_RELEASE: "vita-agent@7d92890"
       - VITA_AGENT_VERSION: "vita-agent@7d92890"
       - SENTRY_TRACES_SAMPLE_RATE: "0.1"
-      - SENTRY_PROFILES_SAMPLE_RATE: "0"
       - SUPABASE_JWT_VERIFY_MODE: "jwks"
       - SUPABASE_JWKS_URL: "https://onqhfjiymokeljclyqdu.supabase.co/auth/v1/.well-known/jwks.json"
-      - VITA_AGENT_RATE_LIMIT_RPM: "60"
-      - VITA_AGENT_MAX_REQUEST_BYTES: "2097152"
-      - VITA_AGENT_EMBED_MODEL: "BAAI/bge-base-en-v1.5"
-      - VITA_AGENT_PERSONA_REFRESH_EVERY: "10"
       - VITA_AGENT_AUTO_EXTRACT: "1"
       - VITA_AGENT_JOB_AUTORUN: "1"
       # V2 post-turn jobs (memory extraction, compaction) are scheduled by every
       # chat turn; without this they are never claimed (VitaDAO/vita-agent#247).
       - VITA_AGENT_JOB_V2: "1"
-      - AUBRAI_MODE: "x402"
-      # AUBRAI_DEBUG must be off (0): a truthy value forces the encrypted-chat
-      # compatibility gateway dark (aubrai_encrypted_chat_compatibility_dark),
-      # which is the only literature gateway the runtime wires.
-      - AUBRAI_DEBUG: "0"
-      - AUBRAI_FAST: "1"
-      # Literature (external_research) is served by the encrypted-chat
-      # compatibility gateway, which requires the paid V2 bundle flags to be
-      # OFF (a truthy flag trips aubrai_paid_literature_gateway_separate). The
-      # capability document advertises external_research on that gateway's
-      # availability (functionality on + AUBRAI_MODE=x402 + AUBRAI_DEBUG off +
-      # HPKE pin), NOT on these flags. Matches prod (all 0). The separate paid
-      # V2 gateway remains dark pending its attestation-binding review.
-      - VITA_AUBRAI_GATEWAY_V2: "0"
-      - VITA_AUBRAI_DURABLE_BUDGET: "0"
-      - VITA_AUBRAI_ENCRYPTED_RESPONSE_REQUIRED: "0"
       # Chat runs Privatemode GLM 5.3 Flash through the attested, fully encrypted SDK
       # (vita-agent d7e5d2fb), the 2026-10-20 TEE bench winner and the model the
       # 2026-10-21 local battery ran on. Privatemode mode forbids crossing to another
-      # provider and requires no generation retries. Voice stays on Privatemode
-      # Whisper. The retired Open-JEV selector is gone from the runtime (vita-agent
-      # a1318c2d), so its settings are removed.
+      # provider and requires no generation retries (the default is 0). Voice stays on Privatemode
+      # Whisper.
       - VITA_AGENT_MODEL_PROVIDER: "privatemode"
-      - VITA_AGENT_MODEL_FALLBACK_MODEL: "off"
-      - VITA_AGENT_TINFOIL_TRANSPORT: "sdk"
       - VITA_AGENT_MODEL: "glm-5.3-flash"
       - VITA_AUDIO_PROVIDER: "privatemode"
       # Restores headroom the model call used to have. Before 2026-08-05 there
@@ -152,13 +124,6 @@ containers:
       # retry to absorb it. 120 is MAX_MODEL_REQUEST_TIMEOUT_S, the ceiling the
       # code itself enforces, and the value the local rig has always used.
       - VITA_AGENT_MODEL_TIMEOUT_S: "120"
-      # Zero under Privatemode, which requires no generation retries. Before it:
-      # one retry, not two: the validator only accepts {0,1}, and at a 120s
-      # timeout a single retry already means ~240s worst case. Two (the old
-      # SDK default) would allow ~360s, well past the point a chat user has
-      # abandoned the turn. One absorbs a single slow call without turning a
-      # failure into a multi-minute wait.
-      - VITA_AGENT_MODEL_MAX_RETRIES: "0"
       - VITA_AGENT_CHAT_TEMPERATURE: "0"
       # Pinned rather than inherited, so the deployed ceiling is auditable from
       # the attestation anchor. Units are estimated tokens (UTF-8 JSON bytes/2),
@@ -168,15 +133,10 @@ containers:
       # sessions that fit the window comfortably (replays, 2026-10-06).
       - VITA_AGENT_MODEL_INPUT_BUDGET: "100000"
       - VITA_AGENT_MODEL_INPUT_HARD_CEILING: "254000"
-      - VITA_AGENT_HISTORY_TOKEN_BUDGET: "22000"
       # Past-conversation search: advertises conversation_history_v1 so the app
       # grants history access and the model can search and read the user's own
       # earlier chats (VitaDAO/vita-agent#253).
       - VITA_CONVERSATION_HISTORY_V1: "1"
-      # Hosted gemma4-31b is non-reasoning. qwen-era THINKING=auto + top_k/min_p
-      # makes router.inf6 / inference.tinfoil.sh return HTTP 400 on tool-bearing
-      # health_analysis turns (capsule BadRequestError). Thinking-off matches the
-      # code's "hosted-gemma" path (intents/__init__.py).
       # MEASURED 2026-08-20, do not set this to "0" without re-measuring.
       # The lever is now honoured on V2 (vita-agent dd9dbb7). Turning
       # thinking OFF fixes the empty-terminal (manager_output_invalid) but
@@ -186,18 +146,8 @@ containers:
       # evidence from large cohort studies". Ungrounded evidence claims
       # are a worse failure than a rare retryable one.
       - VITA_AGENT_CHAT_THINKING: "auto"
-      # 8000 (the code default since vita-agent c09526c). This value is the
-      # ONE completion ceiling covering reasoning AND answer. Measured on
-      # fable-distill at reasoning_effort=medium: simple 417 tok, complex
-      # 2.8k, synthesis 3.2k, but a long-form "cover every system" ask lands
-      # at 5,887 and has been seen to reach 6,000 — so the old 6000 had ~2%
-      # headroom and truncated the prose mid-word, dropping the trailing
-      # vita-artifact card with it. Left at 6000 this line would OVERRIDE the
-      # code default and half-apply the fix.
-      - VITA_AGENT_CHAT_MAX_TOKENS: "8000"
       # THINKING-OFF tier. This is the cap the turn actually runs under
-      # now that VITA_AGENT_CHAT_THINKING="0" is honoured on V2, so it is
-      # no longer the chit-chat tier it was sized for. Left at its 1300
+      # when thinking is off, so it is not a chit-chat tier. Left at its 1300
       # default it starved a plain "how many workouts this month?": the
       # answer hit finish=length every round, the agent kept spending
       # rounds, and the turn blew past MODEL_TIMEOUT_S=120 and vanished
@@ -213,20 +163,15 @@ containers:
       # (below the code defaults that replaced them) and were removed from
       # prod rather than copied here.
       - VITA_AGENT_PARALLEL_TOOLS: "1"
-      - VITA_AUBRAI_ATTESTATION_REQUIRED: "0"
       # Public web search through Exa (vita-agent #297). Needs the
       # VITA_AGENT_EXA_API_KEY secret below; images without #297 ignore it.
       # Staging only until the ai_insights consent text covers web search.
       - VITA_AGENT_WEB_SEARCH: "1"
-      # Literature is direct Firecrawl (FIRECRAWL_API_KEY below); Aubrai literature is
-      # retired for now, so its functionality is off.
-      - VITA_AGENT_LITERATURE_PROVIDER: "firecrawl"
-      - VITA_AUBRAI_FUNCTIONALITY_ENABLED: "0"
+      # Literature is direct Firecrawl (FIRECRAWL_API_KEY below), the only provider.
     secrets:
       - VITA_AGENT_GHCR_TOKEN
       - TINFOIL_API_KEY
       - PRIVATEMODE_API_KEY
-      - REDPILL_API_KEY
       - SENTRY_DSN
       # Staging Supabase URL/anon live in env above (onqhf…). Do NOT attach the
       # shared org SUPABASE_* secrets — those are prod (cuvsz…) and override the
@@ -235,8 +180,6 @@ containers:
       # reads as its fallback pair.
       - STAGING_SUPABASE_INTERNAL_AUTH_EMAIL
       - STAGING_SUPABASE_INTERNAL_AUTH_PASSWORD
-      - AUBRAI_HPKE_PUBLIC_KEY
-      - X402_WALLET_PRIVATE_KEY
       # Backs /api/v1/turn-protocol-ticket (exposed in shim.paths). Already ATTACHED
       # to the enclave; declared here so a create --replace can't silently drop it.
       - VITA_PROTOCOL_TICKET_HMAC_KEY
@@ -249,13 +192,11 @@ shim:
   upstream-port: 8787
   paths:
     - /api/health
-    - /metrics
     - /.well-known/enclave-pubkey
     - /.well-known/vita-agent-capabilities
     - /.well-known/vita-agent-turn-features
     - /api/v1/turn-protocol-ticket
     - /api/v1/audio/transcriptions
     - /api/v1/capsule
-    - /api/v1/capsule/stream
     - /api/v1/jobs
     - /api/v1/jobs/*
