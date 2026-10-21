@@ -18,7 +18,7 @@ containers:
     # cvm 0.14 defaults to a read-only rootfs; the agent writes DATA_DIR (/home/vita/.vita-agent) at import time.
     # Keeps the 0.7.5 behaviour; a tmpfs on the data dir could harden this later.
     read_only: false
-    image: "ghcr.io/vitadao/vita-agent:ci-4355c939284f845e148186940295191f610009e7-39422132703-1@sha256:89f827216581b6f6a6767ea4d386638c3466cc7c1335d23aff79d8f917a9b38c"
+    image: "ghcr.io/vitadao/vita-agent:staging-a36be833032c70fd80083ffa7bc09e7265397566@sha256:5f99291127829f96e19cf12a78f2460337d2ae8cb8287f802a5703805edd8897"
     env:
       - VITA_AGENT_PORT: "8787"
       - STORAGE_BACKEND: "supabase"
@@ -44,7 +44,7 @@ containers:
       # /.well-known/vita-agent-capabilities endpoint 503s → the V2 client cannot
       # negotiate a turn → every chat fails with chat_agent_error. The 4 context-v2
       # flags are all-or-nothing (partial set → partial_context_v2_bundle).
-      - VITA_AGENT_DEPLOYMENT_ID: "staging-vita-agent-4355c93"
+      - VITA_AGENT_DEPLOYMENT_ID: "staging-vita-agent-a36be83"
       - VITA_AGENT_POLICY_VERSION: "vita-agent-policy/2026-07-12"
       - VITA_CONTEXT_V2_COHORT_POLICY_VERSION: "context-v2-rollout/1"
       - VITA_TURN_ENVELOPE_V2: "1"
@@ -106,8 +106,8 @@ containers:
       # 2026-07-26). contracts.py:391 still enforces closed-set provenance and
       # the registry's unit/type/range rules on every synthetic fact.
       - VITA_STAGING_SYNTHETIC_FIXTURES: "1"
-      - SENTRY_RELEASE: "vita-agent@4355c93"
-      - VITA_AGENT_VERSION: "vita-agent@4355c93"
+      - SENTRY_RELEASE: "vita-agent@a36be83"
+      - VITA_AGENT_VERSION: "vita-agent@a36be83"
       - SENTRY_TRACES_SAMPLE_RATE: "0.1"
       - SENTRY_PROFILES_SAMPLE_RATE: "0"
       - SUPABASE_JWT_VERIFY_MODE: "jwks"
@@ -137,18 +137,17 @@ containers:
       - VITA_AUBRAI_GATEWAY_V2: "0"
       - VITA_AUBRAI_DURABLE_BUDGET: "0"
       - VITA_AUBRAI_ENCRYPTED_RESPONSE_REQUIRED: "0"
-      # Staging voice verification: use hosted DeepSeek while the separate
-      # Fable model container is stopped. Preserve attested Open-JEV selection.
-      # The runtime rejects the retired provider-fallback setting at boot.
-      - VITA_AGENT_MODEL_PROVIDER: "tinfoil"
+      # Chat runs Privatemode GLM 5.3 Flash through the attested, fully encrypted SDK
+      # (vita-agent d7e5d2fb), the 2026-10-20 TEE bench winner and the model the
+      # 2026-10-21 local battery ran on. Privatemode mode forbids crossing to another
+      # provider and requires no generation retries. Voice stays on Privatemode
+      # Whisper. The retired Open-JEV selector is gone from the runtime (vita-agent
+      # a1318c2d), so its settings are removed.
+      - VITA_AGENT_MODEL_PROVIDER: "privatemode"
+      - VITA_AGENT_MODEL_FALLBACK_MODEL: "off"
       - VITA_AGENT_NATIVE_HARNESS: "1"
-      - VITA_AGENT_OPEN_JEV_SELECTION: "1"
-      # The release digest follows the candidate repo's newest published
-      # release (verified build attestation + enclave attestation); the
-      # selector and adapter identity hashes stay pinned and fail closed.
-      - VITA_AGENT_OPEN_JEV_RELEASE_TARGET: "{\"host\":\"open-jev-candidate.vitality-now.containers.tinfoil.dev\",\"repo\":\"VitaDAO/open-jev-candidate-tinfoil-config\",\"credential_env\":\"TINFOIL_API_KEY\",\"release_digest\":\"latest\",\"selector_sha256\":\"87916b404e3e344620f8879319f081ad16e823ebfc0e41dacc3212e26b0938e7\",\"adapter_sha256\":\"79057d0e2673aa2813a8ea64193d74182a33392b1221c7c06d4afc7afe18dc36\"}"
       - VITA_AGENT_TINFOIL_TRANSPORT: "sdk"
-      - VITA_AGENT_MODEL: "deepseek-v4-1-flash"
+      - VITA_AGENT_MODEL: "glm-5.3-flash"
       - VITA_AUDIO_PROVIDER: "privatemode"
       # 0.7 (was the DeepSeek reference 1.0): blind A/B 2026-10-07, 3x26 answers
       # per arm: whole-answer language drift 1/78 -> 0/78, accepted finals 74 -> 78,
@@ -167,12 +166,13 @@ containers:
       # retry to absorb it. 120 is MAX_MODEL_REQUEST_TIMEOUT_S, the ceiling the
       # code itself enforces, and the value the local rig has always used.
       - VITA_AGENT_MODEL_TIMEOUT_S: "120"
-      # One retry, not two: the validator only accepts {0,1}, and at a 120s
+      # Zero under Privatemode, which requires no generation retries. Before it:
+      # one retry, not two: the validator only accepts {0,1}, and at a 120s
       # timeout a single retry already means ~240s worst case. Two (the old
       # SDK default) would allow ~360s, well past the point a chat user has
       # abandoned the turn. One absorbs a single slow call without turning a
       # failure into a multi-minute wait.
-      - VITA_AGENT_MODEL_MAX_RETRIES: "1"
+      - VITA_AGENT_MODEL_MAX_RETRIES: "0"
       # Retain the other chat setting; manager requests use the explicit
       # VITA_AGENT_MANAGER_TEMPERATURE=0.7 above.
       - VITA_AGENT_CHAT_TEMPERATURE: "0"
@@ -243,12 +243,14 @@ containers:
       # VITA_AGENT_EXA_API_KEY secret below; images without #297 ignore it.
       # Staging only until the ai_insights consent text covers web search.
       - VITA_AGENT_WEB_SEARCH: "1"
+      # Literature is direct Firecrawl (FIRECRAWL_API_KEY below); Aubrai literature is
+      # retired for now, so its functionality is off.
+      - VITA_AGENT_LITERATURE_PROVIDER: "firecrawl"
+      - VITA_AUBRAI_FUNCTIONALITY_ENABLED: "0"
     secrets:
-      - OPEN_JEV_CANDIDATE_API_KEY
       - VITA_AGENT_GHCR_TOKEN
       - TINFOIL_API_KEY
       - PRIVATEMODE_API_KEY
-      - OPEN_JEV_API_KEY
       - REDPILL_API_KEY
       - SENTRY_DSN
       # Staging Supabase URL/anon live in env above (onqhf…). Do NOT attach the
@@ -266,6 +268,7 @@ containers:
       # Agent-owned Exa key for web search. Not EXA_API_KEY: that org secret
       # belongs to aubrai-harness-prod.
       - VITA_AGENT_EXA_API_KEY
+      - FIRECRAWL_API_KEY
 
 shim:
   upstream-port: 8787
