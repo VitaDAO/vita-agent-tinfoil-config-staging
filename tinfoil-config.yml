@@ -109,11 +109,11 @@ containers:
       # V2 post-turn jobs (memory extraction, compaction) are scheduled by every
       # chat turn; without this they are never claimed (VitaDAO/vita-agent#247).
       - VITA_AGENT_JOB_V2: "1"
-      # Chat runs RedPill deepseek/deepseek-v4.1-flash-1017 (served by Tinfoil) through
-      # RedPill's attested gateway with end-to-end encryption. RedPill mode forbids
+      # Chat runs Phala deepseek/deepseek-v4.1-flash-1017 (served by Tinfoil) through
+      # Phala's attested gateway with end-to-end encryption. Phala mode forbids
       # crossing to another provider and requires no generation retries (the default
       # is 0). Voice stays on Privatemode Whisper.
-      - VITA_AGENT_MODEL_PROVIDER: "redpill"
+      - VITA_AGENT_MODEL_PROVIDER: "phala"
       - VITA_AGENT_MODEL: "deepseek/deepseek-v4.1-flash-1017"
       - VITA_AUDIO_PROVIDER: "privatemode"
       # Restores headroom the model call used to have. Before 2026-08-05 there
@@ -177,7 +177,7 @@ containers:
       - STAGING_VITA_MCP_GRANT_PRIVATE_KEY
       - VITA_AGENT_GHCR_TOKEN
       - TINFOIL_API_KEY
-      - REDPILL_API_KEY
+      - PHALA_API_KEY
       - PRIVATEMODE_API_KEY
       - SENTRY_DSN
       # Staging Supabase URL/anon live in env above (onqhf…). Do NOT attach the
