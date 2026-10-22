@@ -115,6 +115,12 @@ containers:
       # is 0). Voice stays on Privatemode Whisper.
       - VITA_AGENT_MODEL_PROVIDER: "phala"
       - VITA_AGENT_MODEL: "deepseek/deepseek-v4.1-flash-1017"
+      # Reviewed Phala gateway release: sha256(app_compose) measured into RTMR3. Reviewed
+      # 2026-10-22: the compose pins ghcr.io/redpill-ai/private-ai-launcher@sha256:c083ff9e…
+      # (public package) and runs Dstack-TEE/private-ai-gateway at signed commit 22d08e24;
+      # ingress and dstack-verifier images carry GitHub build provenance. A Phala gateway
+      # upgrade changes this hash and fails chat closed until the new release is reviewed here.
+      - VITA_AGENT_PHALA_COMPOSE_HASHES: "aa767dbc886174737fcc77083851e3dbdea093b976404755a3f5a68c0d9e7992"
       - VITA_AUDIO_PROVIDER: "privatemode"
       # Restores headroom the model call used to have. Before 2026-08-05 there
       # was no explicit timeout, so the OpenAI SDK defaults applied: 600s and
