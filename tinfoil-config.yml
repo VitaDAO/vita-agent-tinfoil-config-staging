@@ -18,7 +18,7 @@ containers:
     # cvm 0.14 defaults to a read-only rootfs; the agent writes DATA_DIR (/home/vita/.vita-agent) at import time.
     # Keeps the 0.7.5 behaviour; a tmpfs on the data dir could harden this later.
     read_only: false
-    image: "ghcr.io/vitadao/vita-agent:staging-07e0829836a8a96fcfccbb9ffac860962eb75c8d@sha256:fae29a465db7cb204a5d0e17b289d120cb8f2da5dcc39a0416da1951dca2bf6e"
+    image: "ghcr.io/vitadao/vita-agent:staging-e3dd117996def95a4a9928f8b94abc7ed84880fe@sha256:adb3b01ea65589b705bfc85da7ae946f225b2d57b27dee638e690e8c2be93f32"
     env:
       # Staging-only inbound MCP. The grant key survives restarts through the
       # dedicated secret below; the API refuses this feature outside staging.
@@ -42,7 +42,7 @@ containers:
       # /.well-known/vita-agent-capabilities endpoint 503s → the V2 client cannot
       # negotiate a turn → every chat fails with chat_agent_error. The 4 context-v2
       # flags are all-or-nothing (partial set → partial_context_v2_bundle).
-      - VITA_AGENT_DEPLOYMENT_ID: "staging-vita-agent-07e0829"
+      - VITA_AGENT_DEPLOYMENT_ID: "staging-vita-agent-e3dd117"
       - VITA_AGENT_POLICY_VERSION: "vita-agent-policy/2026-07-12"
       - VITA_CONTEXT_V2_COHORT_POLICY_VERSION: "context-v2-rollout/1"
       - VITA_TURN_ENVELOPE_V2: "1"
@@ -99,8 +99,8 @@ containers:
       # 2026-07-26). contracts.py:391 still enforces closed-set provenance and
       # the registry's unit/type/range rules on every synthetic fact.
       - VITA_STAGING_SYNTHETIC_FIXTURES: "1"
-      - SENTRY_RELEASE: "vita-agent@07e0829"
-      - VITA_AGENT_VERSION: "vita-agent@07e0829"
+      - SENTRY_RELEASE: "vita-agent@e3dd117"
+      - VITA_AGENT_VERSION: "vita-agent@e3dd117"
       - SENTRY_TRACES_SAMPLE_RATE: "0.1"
       - SUPABASE_JWT_VERIFY_MODE: "jwks"
       - SUPABASE_JWKS_URL: "https://onqhfjiymokeljclyqdu.supabase.co/auth/v1/.well-known/jwks.json"
