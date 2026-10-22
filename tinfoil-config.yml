@@ -109,13 +109,12 @@ containers:
       # V2 post-turn jobs (memory extraction, compaction) are scheduled by every
       # chat turn; without this they are never claimed (VitaDAO/vita-agent#247).
       - VITA_AGENT_JOB_V2: "1"
-      # Chat runs Privatemode GLM 5.3 Flash through the attested, fully encrypted SDK
-      # (vita-agent d7e5d2fb), the 2026-10-20 TEE bench winner and the model the
-      # 2026-10-21 local battery ran on. Privatemode mode forbids crossing to another
-      # provider and requires no generation retries (the default is 0). Voice stays on Privatemode
-      # Whisper.
-      - VITA_AGENT_MODEL_PROVIDER: "privatemode"
-      - VITA_AGENT_MODEL: "glm-5.3-flash"
+      # Chat runs RedPill deepseek/deepseek-v4.1-flash-1017 (served by Tinfoil) through
+      # RedPill's attested gateway with end-to-end encryption. RedPill mode forbids
+      # crossing to another provider and requires no generation retries (the default
+      # is 0). Voice stays on Privatemode Whisper.
+      - VITA_AGENT_MODEL_PROVIDER: "redpill"
+      - VITA_AGENT_MODEL: "deepseek/deepseek-v4.1-flash-1017"
       - VITA_AUDIO_PROVIDER: "privatemode"
       # Restores headroom the model call used to have. Before 2026-08-05 there
       # was no explicit timeout, so the OpenAI SDK defaults applied: 600s and
@@ -128,7 +127,9 @@ containers:
       # retry to absorb it. 120 is MAX_MODEL_REQUEST_TIMEOUT_S, the ceiling the
       # code itself enforces, and the value the local rig has always used.
       - VITA_AGENT_MODEL_TIMEOUT_S: "120"
-      - VITA_AGENT_CHAT_TEMPERATURE: "0"
+      # The DeepSeek V4.1 model card recommends 1.0. At 0 the model repeats an
+      # invalid tool call verbatim, one wasted round each time (measured 2026-10-22).
+      - VITA_AGENT_CHAT_TEMPERATURE: "1.0"
       # Pinned rather than inherited, so the deployed ceiling is auditable from
       # the attestation anchor. Units are estimated tokens (UTF-8 JSON bytes/2),
       # about 2.1x real tokens. The model serves 262,144 real tokens: the hard
@@ -176,6 +177,7 @@ containers:
       - STAGING_VITA_MCP_GRANT_PRIVATE_KEY
       - VITA_AGENT_GHCR_TOKEN
       - TINFOIL_API_KEY
+      - REDPILL_API_KEY
       - PRIVATEMODE_API_KEY
       - SENTRY_DSN
       # Staging Supabase URL/anon live in env above (onqhf…). Do NOT attach the
